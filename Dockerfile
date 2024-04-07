@@ -4,6 +4,8 @@ FROM golang:1.17-alpine AS builder
 # Set the working directory inside the container
 WORKDIR /logger
 
+RUN ls
+
 # Copy the Go module files
 COPY go.mod go.sum ./
 
