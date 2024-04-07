@@ -57,7 +57,6 @@ var (
 	db     *sql.DB
 	Events Event
 	cwd = ""
-	logOver = "file"
 	csv_path = "/app/csv_files"
 	validPrefixes = []string{"407001","407002","407003", "407004","407005","407006","407007","407008","407009"}
 )
@@ -88,8 +87,6 @@ func main() {
 	}
 	defer db.Close()
 
-	logOver = os.Getenv("logOver")
-
 	if err != nil {
 		fmt.Println("Ошибка загрузки часового пояса:", err)
 		return
@@ -101,7 +98,9 @@ func run() {
 	var err error
 
 	fmt.Println("LogFiles")
+
 	err = LogFiles()
+
 	if err != nil {
 		fmt.Println("Error when log Data:", err)
 	}
