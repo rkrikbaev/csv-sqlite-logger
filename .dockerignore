@@ -1,0 +1,7 @@
+csv_data
+src
+.gitignore
+docker-compose.yaml
+go.work
+.venv
+.vscode
