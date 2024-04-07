@@ -3,7 +3,7 @@ FROM golang:1.17 AS builder
 
 WORKDIR /logger
 
-COPY ./src .
+COPY src/. .
 
 RUN go build -o app
 

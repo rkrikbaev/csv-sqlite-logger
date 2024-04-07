@@ -14,9 +14,7 @@ services:
       - .\csv_data:/app/csv_data
       - .\db:/app/db
       - .\.env:/app/.env
-    command: "python modbus_slave.py"
-    depends_on:
-      - graber
+    command: "./app"
 
   restarter:
     image: docker:cli
