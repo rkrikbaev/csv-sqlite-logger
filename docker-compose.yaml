@@ -1,0 +1,41 @@
+version: "3"
+services:
+  
+  modbus:
+    restart: always
+    build: 
+      context: modbus
+      dockerfile: Dockerfile
+    image: rkrikbaev/modbus-slave:latest
+    container_name: modbus-slave
+    stdin_open: true
+    tty: true
+    ports:
+      - 5020:5020
+    volumes:
+      - .\data:/app/data
+      - .\modbus\modbus_slave.py:/app/modbus_slave.py
+    command: "python modbus_slave.py"
+    depends_on:
+      - graber
+
+  graber:
+    restart: always
+    build:
+      context: graber
+      dockerfile: Dockerfile      
+    image: rkrikbaev/web-graber:latest
+    container_name: web-graber
+    stdin_open: true
+    tty: true
+    volumes:
+      - .\data:/app/data
+      - .\graber\graber.py:/app/graber.py
+      - .\graber\config.py:/app/config.py
+    command: "python graber.py"
+
+  restarter:
+    image: docker:cli
+    volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
+    command: ["/bin/sh", "-c", "while true; do sleep 86400; docker restart web-graber; done"]
+    restart: always
