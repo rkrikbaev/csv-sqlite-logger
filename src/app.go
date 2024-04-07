@@ -95,17 +95,21 @@ func main() {
 }
 
 func run() {
+
 	var err error
-
-	fmt.Println("LogFiles")
-
-	err = LogFiles()
-
-	if err != nil {
-		fmt.Println("Error when log Data:", err)
-	}
-	time.Sleep(600 * time.Second)
 	
+	for {
+		fmt.Println("LogFiles")
+
+		err = LogFiles()
+
+		if err != nil {
+			fmt.Println("Error when log Data:", err)
+		}
+
+		time.Sleep(600 * time.Second)
+		
+		}
 	}
 
 func LogFiles() error {

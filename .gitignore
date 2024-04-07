@@ -6,5 +6,3 @@ python.idea/
 .venv
 src/__app.go
 data_past
-bin/app
-bin/app.exe
