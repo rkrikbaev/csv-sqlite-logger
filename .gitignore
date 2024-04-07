@@ -7,4 +7,5 @@ python.idea/
 src/__app.go
 bin/app
 data_past
-bin
+bin/*
+bin/app
