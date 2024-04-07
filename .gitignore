@@ -5,7 +5,6 @@ python.idea/
 .vscode
 .venv
 src/__app.go
-bin/app
 data_past
-bin/*
 bin/app
+bin/app.exe
