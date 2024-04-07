@@ -58,6 +58,8 @@ var (
 	Events Event
 	cwd = ""
 	logOver = "file"
+	csv_path = "/app/csv_files"
+	validPrefixes = []string{"407001","407002","407003", "407004","407005","407006","407007","407008","407009"}
 )
 
 func main() {
@@ -65,7 +67,7 @@ func main() {
 	var err error
 	fmt.Println("Start")
 
-	env := path.Join(cwd, "./bin/app.env")
+	env := path.Join(cwd, "./.env")
 	err = godotenv.Load(env)
 	if err != nil {
 		fmt.Println("error parse env file: ", env)
@@ -73,6 +75,9 @@ func main() {
 	cwd, _ = os.Getwd()
 
 	dbPath := os.Getenv("db_path")
+	csv_path = os.Getenv("csv_path")
+
+	// csv_path := path.Join(cwd, "/csv_data/")
 
 	fmt.Println(dbPath)
 	db, err = sql.Open("sqlite3", dbPath)
@@ -106,13 +111,11 @@ func run() {
 }
 
 func LogFiles() error {
-    path := path.Join(cwd, "/csv_data/")
-		validPrefixes := []string{"407001","407002","407003", "407004","407005","407006","407007","407008","407009"}
 
-		files, err := ioutil.ReadDir(path)
-		if err != nil {
-			return err
-		}
+	files, err := ioutil.ReadDir(csv_path)
+	if err != nil {
+		return err
+	}
 
     for _, file := range files {
         fileName := file.Name()
@@ -120,7 +123,7 @@ func LogFiles() error {
         if !file.IsDir() && strings.HasSuffix(fileName, ".csv") {
             eventid, isValid := utils.GetValidPrefix(fileName, validPrefixes)
             if isValid {
-                pathFile := filepath.Join(path, fileName)
+                pathFile := filepath.Join(csv_path, fileName)
 
 				//parse file to list
 				columns, values, err := filelogger.ParseAndPrepareData(pathFile)
@@ -134,7 +137,7 @@ func LogFiles() error {
 				if err != nil {
 					continue
 				}
-				pathTo := fmt.Sprintf("%s/saved/%s",path,fileName)
+				pathTo := fmt.Sprintf("%s/saved/%s",csv_path,fileName)
 				fmt.Println(pathTo)
 				utils.MoveFile(pathFile, pathTo)
 			}
