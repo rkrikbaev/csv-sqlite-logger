@@ -68,6 +68,7 @@ func main() {
 	fmt.Println("Start")
 
 	env := path.Join(cwd, "./.env")
+
 	err = godotenv.Load(env)
 	if err != nil {
 		fmt.Println("error parse env file: ", env)
@@ -77,10 +78,11 @@ func main() {
 	dbPath := os.Getenv("db_path")
 	csv_path = os.Getenv("csv_path")
 
-	// csv_path := path.Join(cwd, "/csv_data/")
-
 	fmt.Println(dbPath)
+	fmt.Println(csv_path)
+
 	db, err = sql.Open("sqlite3", dbPath)
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -97,18 +99,15 @@ func main() {
 
 func run() {
 	var err error
-	for {
-		if logOver == "file" {
-			fmt.Println("LogFiles")
-			err = LogFiles()
-			if err != nil {
-				fmt.Println("Error when log Data:", err)
-			}
-		}
-	
-		time.Sleep(600 * time.Second)
+
+	fmt.Println("LogFiles")
+	err = LogFiles()
+	if err != nil {
+		fmt.Println("Error when log Data:", err)
 	}
-}
+	time.Sleep(600 * time.Second)
+	
+	}
 
 func LogFiles() error {
 
