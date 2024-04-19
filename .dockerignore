@@ -1,7 +1,9 @@
 csv_data
-src
 .gitignore
 docker-compose.yaml
 go.work
 .venv
 .vscode
+db_data
+db
+csv_data

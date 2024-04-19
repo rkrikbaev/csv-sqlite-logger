@@ -1,34 +1,22 @@
 package main
 
-//СИКН Амангельды    407001
-//СИКН Айракты   407002
-//СИКН Жаркум   407003
-//
-//Резервуар Амангельды - 1   407004
-//Резервуар Амангельды - 2   407005
-//
-//Резервуар Айракты - 1   407006
-//Резервуар Айракты - 2   407007
-//
-//Резервуар Жаркум - 1   407008
-//Резервуар Жаркум - 2   407009
-
 import (
-	"io/ioutil"
 	"database/sql"
-	"log"
-	"path/filepath"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/lib/pq"
 
 	"filelogger"
 	"utils"
+	"postgresdb"
 )
 
 type Event struct {
@@ -57,8 +45,8 @@ var (
 	db     *sql.DB
 	Events Event
 	cwd = ""
-	csv_path = "/app/csv_files"
-	validPrefixes = []string{"407001","407002","407003", "407004","407005","407006","407007","407008","407009"}
+	csv_path = ""
+	tables = []string{}
 )
 
 func main() {
@@ -74,23 +62,22 @@ func main() {
 	}
 	cwd, _ = os.Getwd()
 
-	dbPath := os.Getenv("db_path")
 	csv_path = os.Getenv("csv_path")
-
-	fmt.Println(dbPath)
 	fmt.Println(csv_path)
 
-	db, err = sql.Open("sqlite3", dbPath)
+	tablesString := os.Getenv("tables")
+	tables = strings.Split(tablesString, ",")
+	fmt.Println(tables)
+
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_NAME"))
+	db, err = sql.Open("postgres", dsn)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
-	if err != nil {
-		fmt.Println("Ошибка загрузки часового пояса:", err)
-		return
-	}
 	run()
 }
 
@@ -101,7 +88,7 @@ func run() {
 	for {
 		fmt.Println("LogFiles")
 
-		err = LogFiles()
+		err = Log()
 
 		if err != nil {
 			fmt.Println("Error when log Data:", err)
@@ -112,7 +99,7 @@ func run() {
 		}
 	}
 
-func LogFiles() error {
+func Log() error {
 
 	files, err := ioutil.ReadDir(csv_path)
 	if err != nil {
@@ -123,7 +110,7 @@ func LogFiles() error {
         fileName := file.Name()
 
         if !file.IsDir() && strings.HasSuffix(fileName, ".csv") {
-            eventid, isValid := utils.GetValidPrefix(fileName, validPrefixes)
+            eventid, isValid := utils.GetValidPrefix(fileName, tables)
             if isValid {
                 pathFile := filepath.Join(csv_path, fileName)
 
@@ -132,14 +119,15 @@ func LogFiles() error {
 				if err != nil {
 					fmt.Println("Error when parse file: ", fileName)
 				}
-				fmt.Println(eventid)
-				fmt.Println(columns)
-				fmt.Println(values)
-				err = InsertDataIntoDB(eventid, columns, values, "")
+
+				//insert data to db
+				err = postgresdb.Insert(db, "logger", eventid, columns, values, "")
 				if err != nil {
 					continue
 				}
+
 				pathTo := fmt.Sprintf("%s/saved/%s",csv_path,fileName)
+
 				fmt.Println(pathTo)
 				utils.MoveFile(pathFile, pathTo)
 			}
@@ -148,60 +136,67 @@ func LogFiles() error {
 	return err
 }
 
-// InsertData inserts data into the specified table in the SQLite database.
-func InsertDataIntoDB(table string, EventParams []string, values []string, state string) error {
+
+
+
+
+
+
+
+// // InsertData inserts data into the specified table in the SQLite database.
+// func InsertDataIntoDB(table string, EventParams []string, values []string, state string) error {
 	
-	columns := EventParams
+// 	columns := EventParams
 
-	columns = append(columns, "createdAtDate")
-	values = append(values, time.Now().Format(EventTimeFormat))
+// 	columns = append(columns, "createdAtDate")
+// 	values = append(values, time.Now().Format(EventTimeFormat))
 	
-	if table == "DOCUMENTS" {
-		columns = append(columns, "state")
-		values = append(values, state)
-	}
+// 	if table == "DOCUMENTS" {
+// 		columns = append(columns, "state")
+// 		values = append(values, state)
+// 	}
 
-	// Construct the SQL query for insertion
-	valuePlaceholders := strings.Repeat("?, ", len(columns)-1) + "?" // Repeat the "?" for placeholders
-	EventParamsString := strings.Join(columns, ",")
+// 	// Construct the SQL query for insertion
+// 	valuePlaceholders := strings.Repeat("$1, ", len(columns)-1) + "$" + strconv.Itoa(len(columns)) // Repeat the "$" for placeholders
+// 	EventParamsString := strings.Join(columns, ",")
 	
-	query := fmt.Sprintf("INSERT OR IGNORE INTO '%s' (%s) VALUES (%s)", table, EventParamsString, valuePlaceholders)
+// 	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s) ON CONFLICT DO NOTHING", table, EventParamsString, valuePlaceholders)
 	
-	fmt.Println(query)
-	fmt.Println(values)
+// 	fmt.Println(query)
+// 	fmt.Println(values)
 	
-	err := putData(db, query, values)
+// 	err := putData(db, query, values)
 	
-	if err != nil {
-		log.Fatal(err)
-	}
-	return nil
-}
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	return nil
+// }
 
-// InsertData inserts data into the specified table in the SQLite database.
-func putData(db *sql.DB, query string, values []string) error {
+// // InsertData inserts data into the specified table in the SQLite database.
+// func putData(db *sql.DB, query string, values []string) error {
 
-	data := make([]interface{}, len(values))
+// 	data := make([]interface{}, len(values))
 
-	for i, v := range values {
-		data[i] = v
-	}
+// 	for i, v := range values {
+// 		data[i] = v
+// 	}
 
-	tx, err := db.Begin() // Start a transaction
+// 	tx, err := db.Begin() // Start a transaction
 
-	if err != nil {
-        return fmt.Errorf("error beginning transaction: %w", err)
-    }
+// 	if err != nil {
+//         return fmt.Errorf("error beginning transaction: %w", err)
+//     }
     
-    defer tx.Rollback() // Rollback the transaction in case of errors
+//     defer tx.Rollback() // Rollback the transaction in case of errors
     
-    _, err = tx.Exec(query, data...)
-    if err != nil {
-        return fmt.Errorf("error executing query: %w", err)
-    }
+//     _, err = tx.Exec(query, data...)
+//     if err != nil {
+//         return fmt.Errorf("error executing query: %w", err)
+//     }
     
-    if err := tx.Commit(); err != nil {
-        return fmt.Errorf("error committing transaction: %w", err)
-    }
-	return nil
-}
+//     if err := tx.Commit(); err != nil {
+//         return fmt.Errorf("error committing transaction: %w", err)
+//     }
+// 	return nil
+// }
