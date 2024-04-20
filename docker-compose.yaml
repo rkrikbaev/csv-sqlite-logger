@@ -3,11 +3,8 @@ services:
   
   logger:
     restart: always
-    build: 
-      context: bin
-      dockerfile: Dockerfile
-    image: logger:latest
-    container_name: file-logger
+    image: logger:v0.0.3
+    container_name: logger
     stdin_open: true
     tty: true
     volumes:
@@ -18,7 +15,13 @@ services:
     environment:
       - DB_USER=postgres
       - DB_PASSWORD=secret
-      - DB_NAME=mydatabase
+      - DB_NAME=db
+      - DB_HOST=database
+      - DB_PORT=5432
+      - DB_SSLMODE=disable
+      - DB_TIMEZONE=UTC
+      - CONTRACT_HOUR=12
+      - CSV_PATH=/app/csv_data
 
   restarter:
     image: docker:cli

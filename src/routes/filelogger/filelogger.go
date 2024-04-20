@@ -4,20 +4,24 @@ import (
 	"encoding/csv"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 )
 
 const(
-	EventTimeFormat = "2006-01-02T15:04:05.000-07:00"
+	// timeLayot = "2006-01-02T15:04:05.000-07:00"
 	CSVTimeFormat = "02.01.2006"
 )
 
 // ReadCSVFile reads the data from the provided CSV file and returns a list of Data.
 // readCSVFile reads a CSV file and returns the headers and records as slices.
 // It takes the path of the CSV file as input and returns the headers, records, and any error encountered.
-func readCSVFile(pathFile string) ([]string, [][]string, error) {
+func readCSVFile(path string) ([]string, [][]string, error) {
+	
 	// Open the CSV file
-	file, err := os.Open(pathFile)
+	file, err := os.Open(path)
+
 	if err != nil {
 		return nil, nil, fmt.Errorf("error opening CSV file: %w", err)
 	}
@@ -40,13 +44,16 @@ func readCSVFile(pathFile string) ([]string, [][]string, error) {
 	return headers, records, err
 }
 
-func ParseAndPrepareData(pathFile string) ([]string, []string, error) {
+func ParsePrepareData(path string, ) (string, time.Time, []string, []string, error) {
 
 	// Чтение и обработка cvs файла
-	headers, records, err := readCSVFile(pathFile)
+	headers, records, err := readCSVFile(path)
 	if err != nil {
-		fmt.Printf("Cannot read file: %s\n", pathFile)
+		fmt.Printf("Cannot read file: %s\n", path)
 	}
+
+	fileName := filepath.Base(path)
+	table := strings.Split(fileName, "_")[0]
 
 	dtValue := records[0][0]
 	
@@ -56,11 +63,7 @@ func ParseAndPrepareData(pathFile string) ([]string, []string, error) {
 	}
 
 	values := records[0]
-	values[0] = converToEventDate(EventTimeFormat, dt)
+	// values[0] = time.Date(dt.Year(), dt.Month(), dt.Day(), 13, 0, 0, 0, dt.Location()).Format(timeLayot)
 
-	return headers, values, err
-}	
-
-func converToEventDate(layout string, eventTime time.Time) (string) {
-	return time.Date(eventTime.Year(), eventTime.Month(), eventTime.Day(), 13, 0, 0, 0, eventTime.Location()).Format(EventTimeFormat)
+	return table, dt, headers, values, err
 }

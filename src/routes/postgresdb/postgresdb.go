@@ -71,8 +71,8 @@ func Insert(db *sql.DB, schema string, table string, EventParams []string, value
 
 	EventParamsString := strings.Join(columns, ",")
 
-	query := fmt.Sprintf(`INSERT INTO "%s"."%s" (%s) VALUES (%s)`, schema, table, EventParamsString, valuePlaceholders)
-
+	// query := fmt.Sprintf(`INSERT INTO "%s"."%s" (%s) VALUES (%s)`, schema, table, EventParamsString, valuePlaceholders)
+	query := fmt.Sprintf(`INSERT INTO "%s"."%s" (%s) VALUES (%s) ON CONFLICT DO NOTHING`, schema, table, EventParamsString, valuePlaceholders)
 	fmt.Println(query)
 	fmt.Println(values)
 
