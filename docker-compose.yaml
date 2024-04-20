@@ -3,7 +3,7 @@ services:
   
   logger:
     restart: always
-    image: logger:v0.0.3
+    image: rkrikbaev/logger:v0.0.3.2
     container_name: logger
     stdin_open: true
     tty: true
