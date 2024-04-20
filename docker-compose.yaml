@@ -1,14 +1,14 @@
 version: "3"
 services:
-  
+
   logger:
     restart: always
-    image: rkrikbaev/logger:v0.0.3.2
+    image: rkrikbaev/logger:v0.0.3.1
     container_name: logger
     stdin_open: true
     tty: true
     volumes:
-      - .\csv_data:/app/csv_data
+      - ./csv_data:/app/csv_data
     command: "./app"
     depends_on:
       - database
@@ -16,7 +16,7 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=secret
       - DB_NAME=db
-      - DB_HOST=database
+      - DB_HOST=localhost
       - DB_PORT=5432
       - DB_SSLMODE=disable
       - DB_TIMEZONE=UTC
@@ -37,8 +37,12 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=secret
-      - POSTGRES_DB=mydatabase
+      - POSTGRES_DB=db
     volumes:
-      - ./db_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
     ports: 
       - "5432:5432"
+
+volumes:
+  db_data:
+    driver: local
