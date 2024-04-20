@@ -22,6 +22,7 @@ services:
       - DB_TIMEZONE=UTC
       - CONTRACT_HOUR=12
       - CSV_PATH=/app/csv_data
+      - DB_FILE_PATH=helper.sql
 
   restarter:
     image: docker:cli

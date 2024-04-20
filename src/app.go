@@ -19,6 +19,10 @@ import (
 	"postgresdb"
 )
 
+import (
+	"os/exec"
+)
+
 const (
 	timeLayot = "2006-01-02T15:04:05.000-07:00"
 	)
@@ -51,7 +55,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	
+	DB_NAME := os.Getenv("DB_NAME")
+	DB_USER := os.Getenv("DB_USER")
+	DB_FILE_PATH := os.Getenv("DB_FILE_PATH")
+	
 	fmt.Println("CSV_PATH",csvPath)
 	fmt.Println("CONTRACT_HOUR",hour)
 
@@ -59,10 +67,25 @@ func main() {
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_NAME"))
 	db, err = sql.Open("postgres", dsn)
+	
+	if err != nil {
+		// Check if the database exists
+		dbExists := checkDatabaseExists(dsn, DB_NAME, DB_USER)
+
+		// If the database doesn't exist, create it
+		if !dbExists {
+			fmt.Printf("Database %s does not exist, creating.\n", DB_NAME)
+			createDatabase(DB_NAME, DB_USER)
+			executeSQLFile(DB_NAME, DB_USER, DB_FILE_PATH)
+		} else {
+			fmt.Printf("Database %s already exists, skipping creation.\n", DB_NAME)
+		}
+	}
 
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	defer db.Close()
 
 	run()
@@ -120,4 +143,36 @@ func Log() error {
 		}
 	}
 	return err
+}
+
+func checkDatabaseExists(dsn, dbName, dbUser string) bool {
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	var exists bool
+	err = db.QueryRow("SELECT 1 FROM pg_database WHERE datname=$1", dbName).Scan(&exists)
+	if err != nil && err != sql.ErrNoRows {
+		log.Fatal(err)
+	}
+
+	return exists
+}
+
+func createDatabase(dbName, dbUser string) {
+	cmd := exec.Command("createdb", "-U", dbUser, dbName)
+	err := cmd.Run()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func executeSQLFile(dbName, dbUser, filePath string) {
+	cmd := exec.Command("psql", "-U", dbUser, "-d", dbName, "-f", filePath)
+	err := cmd.Run()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
