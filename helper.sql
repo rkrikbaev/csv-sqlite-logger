@@ -1,3 +1,9 @@
+-- Create schema logger
+CREATE SCHEMA IF NOT EXISTS logger;
+
+-- Set authorization for the schema
+ALTER SCHEMA logger OWNER TO postgres;
+
 -- Add missing import statement for SERIAL data type
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE logger."407001" (
@@ -93,3 +99,35 @@ CREATE TABLE logger."407009" (
     "datetime"	TEXT UNIQUE,
     "collected"	TEXT
 );
+
+-- Create schema logger
+CREATE SCHEMA IF NOT EXISTS messenger;
+
+-- Set authorization for the schema
+ALTER SCHEMA messenger OWNER TO postgres;
+
+CREATE TABLE messenger."DOCUMENTS" (
+	"ID"	SERIAL PRIMARY KEY,
+	"document"	TEXT NOT NULL,
+	"response"	TEXT,
+	"datetime"	TEXT NOT NULL UNIQUE,
+	"sent"	TEXT,
+	"created"	TEXT,
+	"state"	TEXT
+);
+
+
+/*
+    FILEPATH: /Users/rustamkrikbayev/projects/csv_logger/helper.sql
+
+    This SQL query selects the table names from the 'logger' schema in the information_schema.tables view.
+    It retrieves the table_name column for all tables in the 'logger' schema.
+
+    Example usage:
+    SELECT table_name
+    FROM information_schema.tables
+    WHERE table_schema = 'logger';
+*/
+-- SELECT table_name FROM information_schema.tables WHERE table_schema = 'logger';
+
+
