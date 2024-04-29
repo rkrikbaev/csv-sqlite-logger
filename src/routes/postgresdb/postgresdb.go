@@ -78,7 +78,7 @@ func Insert(db *sql.DB, schema string, table string, EventParams []string, value
 
 	err := _put(db, query, values)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(collected)
 	}
 	return nil
 }
