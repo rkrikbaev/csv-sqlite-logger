@@ -3,27 +3,24 @@ package postgresdb
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"strings"
 	"time"
-)
-
-import (
-	"log"
 )
 
 var (
 	EventTimeFormat = "2006-01-02T15:04:05.000-07:00"
 )
 
-func Update(db *sql.DB, schema string, table string, columns, values []string, condition, state string) error {
+func Update(db *sql.DB, dbname string, schema string, table string, columns, values []string, condition, state string) error {
 
 	var columnValuePairs []string
-	
+
 	for i := range columns {
 		columnValuePairs = append(columnValuePairs, fmt.Sprintf(`%s = '%s'`, columns[i], values[i]))
 	}
 	// Construct the SQL query for updating the record
-	query := fmt.Sprintf(`UPDATE "%s"."%s" SET %s WHERE (%s)`, schema, table, strings.Join(columnValuePairs, ","), condition)
+	query := fmt.Sprintf(`UPDATE %s."%s"."%s" SET %s WHERE (%s)`, dbname, schema, table, strings.Join(columnValuePairs, ","), condition)
 	err := _put(db, query, values)
 	if err != nil {
 		return err
@@ -32,12 +29,12 @@ func Update(db *sql.DB, schema string, table string, columns, values []string, c
 }
 
 // GetRecord fetches the last or first record from the specified table in the PostgreSQL database based on the provided parameters.
-func Select(db *sql.DB, schema string, table string, orderBy string, limit int, filter []string) (map[string]string, error) {
+func Select(db *sql.DB, dbname string, schema string, table string, orderBy string, limit int, filter []string) (map[string]string, error) {
 	var query string
 	if filter != nil {
-		query = fmt.Sprintf(`SELECT * FROM "%s"."%s" WHERE %s ORDER BY datetime %s LIMIT %d`, schema, table, strings.Join(filter, ","), orderBy, limit)
+		query = fmt.Sprintf(`SELECT * FROM %s."%s"."%s" WHERE %s ORDER BY datetime %s LIMIT %d`, dbname, schema, table, strings.Join(filter, ","), orderBy, limit)
 	} else {
-		query = fmt.Sprintf(`SELECT * FROM "%s"."%s" ORDER BY datetime %s LIMIT %d`, schema, table, orderBy, limit)
+		query = fmt.Sprintf(`SELECT * FROM %s."%s"."%s" ORDER BY datetime %s LIMIT %d`, dbname, schema, table, orderBy, limit)
 	}
 	fmt.Println(query)
 	_, data, err := _get(db, query)
@@ -49,14 +46,13 @@ func Select(db *sql.DB, schema string, table string, orderBy string, limit int, 
 }
 
 // InsertData inserts data into the specified table in the PostgreSQL database.
-func Insert(db *sql.DB, schema string, table string, EventParams []string, values []string, state string) error {
+func Insert(db *sql.DB, dbname string, schema string, table string, columns []string, values []string, state string) error {
 	// Add the createdAtDate column to the EventParams slice
-	columns := EventParams
+	// columns := EventParams
 	columns = append(columns, "collected")
 	collected := time.Now().Format(EventTimeFormat)
 	fmt.Println(collected)
 	values = append(values, collected)
-	
 
 	if table == "DOCUMENTS" {
 		columns = append(columns, "state")
@@ -69,16 +65,15 @@ func Insert(db *sql.DB, schema string, table string, EventParams []string, value
 	}
 	valuePlaceholders := strings.Join(placeholders, ", ")
 
-	EventParamsString := strings.Join(columns, ",")
+	columnsNames := strings.Join(columns, ",")
 
-	// query := fmt.Sprintf(`INSERT INTO "%s"."%s" (%s) VALUES (%s)`, schema, table, EventParamsString, valuePlaceholders)
-	query := fmt.Sprintf(`INSERT INTO "%s"."%s" (%s) VALUES (%s) ON CONFLICT DO NOTHING`, schema, table, EventParamsString, valuePlaceholders)
-	fmt.Println(query)
-	fmt.Println(values)
+	// query := fmt.Sprintf(`INSERT INTO %s."%s" (%s) VALUES (%s)`, schema, table, EventParamsString, valuePlaceholders)
+	query := fmt.Sprintf(`INSERT INTO %s."%s"."%s" (%s) VALUES (%s) ON CONFLICT DO NOTHING`, dbname, schema, table, columnsNames, valuePlaceholders)
 
 	err := _put(db, query, values)
 	if err != nil {
-		fmt.Println(collected)
+		fmt.Println(err)
+		return err
 	}
 	return nil
 }
@@ -86,10 +81,10 @@ func Insert(db *sql.DB, schema string, table string, EventParams []string, value
 // GetData fetches data from the specified table in the PostgreSQL database and processes it.
 // It returns true if the operation is successful.
 func _get(db *sql.DB, query string) ([]string, map[string]string, error) {
-    rows, err := db.Query(query)
-    if err != nil {
-        log.Fatalf("Error querying data: %s", err)
-    }
+	rows, err := db.Query(query)
+	if err != nil {
+		log.Fatalf("Error querying data: %s", err)
+	}
 	defer rows.Close()
 	// Check if there is a row to scan
 	if !rows.Next() {
@@ -129,21 +124,48 @@ func _put(db *sql.DB, query string, values []string) error {
 		data[i] = v
 	}
 
+	fmt.Println(query)
+	fmt.Println(values)
+
 	tx, err := db.Begin() // Start a transaction
 
 	if err != nil {
-        return fmt.Errorf("error beginning transaction: %w", err)
-    }
-    
-    defer tx.Rollback() // Rollback the transaction in case of errors
-    
-    _, err = tx.Exec(query, data...)
-    if err != nil {
-        return fmt.Errorf("error executing query: %w", err)
-    }
-    
-    if err := tx.Commit(); err != nil {
-        return fmt.Errorf("error committing transaction: %w", err)
-    }
+		return fmt.Errorf("error beginning transaction: %w", err)
+	}
+
+	defer tx.Rollback() // Rollback the transaction in case of errors
+
+	_, err = tx.Exec(query, data...)
+	if err != nil {
+		return fmt.Errorf("error executing query: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("error committing transaction: %w", err)
+	}
 	return nil
+}
+
+// ListSchemas lists all schemas in the PostgreSQL database.
+func ListSchemas(db *sql.DB) ([]string, error) {
+	var schemas []string
+
+	rows, err := db.Query(`SELECT schema_name FROM information_schema.schemata`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var schemaName string
+		if err := rows.Scan(&schemaName); err != nil {
+			return nil, err
+		}
+		schemas = append(schemas, schemaName)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return schemas, nil
 }

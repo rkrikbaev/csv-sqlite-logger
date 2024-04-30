@@ -3,19 +3,19 @@ services:
 
   logger:
     restart: always
-    image: rkrikbaev/logger:v0.0.3.1
+    image: rkrikbaev/logger:v1.0.9
     container_name: logger
     stdin_open: true
     tty: true
     volumes:
-      - ./csv_data:/app/csv_data
+      - ../csv_data:/app/csv_data
     command: "./app"
     depends_on:
       - database
     environment:
       - DB_USER=postgres
       - DB_PASSWORD=secret
-      - DB_NAME=db
+      - DB_NAME=postgres
       - DB_HOST=database
       - DB_PORT=5432
       - DB_SSLMODE=disable
@@ -27,7 +27,7 @@ services:
   restarter:
     image: docker:cli
     volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
-    command: ["/bin/sh", "-c", "while true; do sleep 86400; docker restart file-logger; done"]
+    command: ["/bin/sh", "-c", "while true; do sleep 86400; docker restart logger; done"]
     restart: always
 
   database:
@@ -37,10 +37,9 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=secret
-      - POSTGRES_DB=db
+      - POSTGRES_DB=postgres
     volumes:
       - db_data:/var/lib/postgresql/data
-      - ./schema.sql /docker-entrypoint-initdb.d/
     ports: 
       - "5432:5432"
 

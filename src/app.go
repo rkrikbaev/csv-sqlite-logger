@@ -8,34 +8,33 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
-	"strconv"
+
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 
 	"filelogger"
-	"utils"
-	"postgresdb"
-)
-
-import (
 	"os/exec"
+	"postgresdb"
+	"utils"
 )
 
 const (
 	timeLayot = "2006-01-02T15:04:05.000-07:00"
-	)
+)
 
 var (
-	db     *sql.DB
-	cwd = ""
+	db      *sql.DB
+	DB_NAME = "postgres"
+	cwd     = ""
 	csvPath = "/csv_data"
-	hour = 0
+	hour    = 0
 )
 
 func main() {
-	
+
 	var err error
 	cwd, _ = os.Getwd()
 
@@ -55,19 +54,31 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	
-	DB_NAME := os.Getenv("DB_NAME")
+
+	DB_NAME = os.Getenv("DB_NAME")
 	DB_USER := os.Getenv("DB_USER")
 	DB_FILE_PATH := os.Getenv("DB_FILE_PATH")
-	
-	fmt.Println("CSV_PATH",csvPath)
-	fmt.Println("CONTRACT_HOUR",hour)
+
+	fmt.Println("CSV_PATH", csvPath)
+	fmt.Println("CONTRACT_HOUR", hour)
 
 	// connect to db
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_NAME"))
+	fmt.Println("Error:", dsn)
+
 	db, err = sql.Open("postgres", dsn)
-	
+	if err != nil {
+		fmt.Println("error parse env file: ", env)
+	}
+
+	schemas, err := postgresdb.ListSchemas(db)
+	if err != nil {
+		fmt.Println("Error:", err)
+	} else {
+		fmt.Println("Schemas:", schemas)
+	}
+
 	if err != nil {
 		// Check if the database exists
 		dbExists := checkDatabaseExists(dsn, DB_NAME, DB_USER)
@@ -94,7 +105,7 @@ func main() {
 func run() {
 
 	var err error
-	
+
 	for {
 		fmt.Println("LogFiles")
 
@@ -105,9 +116,9 @@ func run() {
 		}
 
 		time.Sleep(600 * time.Second)
-		
-		}
+
 	}
+}
 
 func Log() error {
 
@@ -116,13 +127,13 @@ func Log() error {
 		return err
 	}
 
-    for _, file := range files {
-        fileName := file.Name()
+	for _, file := range files {
+		fileName := file.Name()
 
-        if !file.IsDir() && strings.HasSuffix(fileName, ".csv") {
-			
+		if !file.IsDir() && strings.HasSuffix(fileName, ".csv") {
+
 			filePath := filepath.Join(csvPath, fileName)
-
+			fmt.Println("Find file", filePath)
 			//parse file to list
 			table, dt, columns, values, err := filelogger.ParsePrepareData(filePath)
 			values[0] = time.Date(dt.Year(), dt.Month(), dt.Day(), hour, 0, 0, 0, dt.Location()).Format(timeLayot)
@@ -132,13 +143,14 @@ func Log() error {
 			}
 
 			//insert data to db
-			err = postgresdb.Insert(db, "logger", table, columns, values, "")
+			fmt.Println("Insert data into DB")
+			err = postgresdb.Insert(db, DB_NAME, "logger", table, columns, values, "")
 			if err != nil {
 				continue
 			}
 
-			savePath := fmt.Sprintf("%s/saved/%s",csvPath,fileName)
-			
+			savePath := fmt.Sprintf("%s/saved/%s", csvPath, fileName)
+
 			utils.MoveFile(filePath, savePath)
 		}
 	}
