@@ -5,7 +5,7 @@ rm -rf /app/bin
 
 mkdir /app/bin
 
-go mod init test.go
+go mod init app.go
 go mod tidy
 
 go get github.com/joho/godotenv v1.5.1
