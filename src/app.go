@@ -81,7 +81,7 @@ func main() {
 
 	if err != nil {
 		// Check if the database exists
-		dbExists := checkDatabaseExists(dsn, DB_NAME, DB_USER)
+		dbExists := checkDatabaseExists(dsn, DB_NAME)
 
 		// If the database doesn't exist, create it
 		if !dbExists {
@@ -157,7 +157,7 @@ func Log() error {
 	return err
 }
 
-func checkDatabaseExists(dsn, dbName, dbUser string) bool {
+func checkDatabaseExists(dsn, dbName string) bool {
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		log.Fatal(err)

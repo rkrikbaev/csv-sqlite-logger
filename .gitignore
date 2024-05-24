@@ -7,3 +7,4 @@ python.idea/
 src/__app.go
 data_past
 db_data/
+*.csv
